@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <title>Celluloïd Circles</title>
 <style>
 :root{--bg:#0a0b14;--fg:#f2efe6;--mut:#8c90ab;--line:#2b2e48;--card:#151829;--amb:#FFB347;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -31,12 +32,16 @@ label input{flex:1;min-width:0;accent-color:#FFB347}label b{color:var(--fg);min-
 .knob i{position:absolute;left:50%;top:9px;width:3px;height:14px;margin-left:-1.5px;background:var(--fg);border-radius:2px;transform-origin:50% 16px}
 .wf{margin-top:12px;background:#151829cc;border:1px solid var(--line);border-radius:14px;padding:10px}.wh{display:flex;gap:8px;align-items:center;margin-bottom:8px}.wh b{flex:1;font-size:12px;letter-spacing:.2em;text-transform:uppercase}.wh button{padding:7px 12px}#wc{display:block;width:100%;height:96px;touch-action:none;border-radius:8px}
 .kh{display:flex;align-items:center;gap:8px;margin-top:16px}.kh #kt{margin:0;flex:1}.kh button{padding:6px 12px;font-size:13px}
+body.fs h1,body.fs #chips,body.fs .kh,body.fs .kn,body.fs .wf{display:none}
+body.fs main{max-width:none;padding:8px 10px 16px}
+body.fs svg{width:min(100%,calc(100vh - 200px));width:min(100%,calc(100svh - 200px));margin:0 auto}
+@media (orientation:landscape){body.fs main{display:flex;gap:12px;align-items:center;height:100svh;box-sizing:border-box;padding:6px 10px}body.fs svg{width:auto;height:calc(100svh - 12px);margin:0;flex:none}body.fs #ctl{flex:1;min-width:0;max-height:100%;overflow:auto}}
 @media (prefers-reduced-motion:reduce){.d{transition:none}.sw{display:none}.rg{transition:none}}
 </style></head><body><main>
 <h1>Celluloïd <span>Circles</span></h1>
 <svg id="c" viewBox="0 0 380 380" role="img" aria-label="Séquenceur circulaire"></svg>
-<div class="row"><button id="pl">Lecture</button><button id="gh">Vélo 100%</button><button id="rl">Roll ×1</button><button id="op">Ouvert</button><button id="un">Annuler</button><button id="cl">Effacer</button><button id="ex">Export</button><div class="seg" id="sg"></div></div>
-<div class="row"><label>Cadence <input id="bp" type="range" min="60" max="140" value="88"><b id="bv">88</b></label><label>Swing <input id="sw" type="range" min="0" max="100" value="0"></label><button id="fx" class="on">Effets</button></div>
+<div id="ctl"><div class="row"><button id="pl">Lecture</button><button id="gh">Vélo 100%</button><button id="rl">Roll ×1</button><button id="op">Ouvert</button><button id="un">Annuler</button><button id="cl">Effacer</button><button id="ex">Export</button><div class="seg" id="sg"></div></div>
+<div class="row"><label>Cadence <input id="bp" type="range" min="60" max="140" value="88"><b id="bv">88</b></label><label>Swing <input id="sw" type="range" min="0" max="100" value="0"></label><button id="fx" class="on">Effets</button><button id="fz">Plein écran</button></div></div>
 <div class="row" id="chips"></div>
 <div class="wf" id="wf" hidden><div class="wh"><b id="wt"></b><button id="wl">Écouter</button><button id="wx">Fermer</button></div><canvas id="wc" width="360" height="96"></canvas></div>
 <div class="kh"><div id="kt"></div><button id="mu">Mute</button><button id="so">Solo</button></div><div class="kn" id="kn"></div>
@@ -198,5 +203,10 @@ const e=el('circle',{cx:c.getAttribute('cx'),cy:c.getAttribute('cy'),r:c.getAttr
 $('fx').onclick=()=>{fx=!fx;$('fx').classList.toggle('on',fx)};
 $('op').onclick=()=>{if(arm){if(H[3].includes(arm.h)){snap();arm.h.o=arm.h.o?0:1;draw()}}else{opn=!opn;$('op').classList.toggle('on',opn)}};
 $('rl').onclick=()=>{if(arm){snap();const k=RL.indexOf(arm.h.r||1);arm.h.r=RL[(k+1)%4]}else rli=(rli+1)%4;draw()};
+function fsToggle(){const on=!document.body.classList.contains('fs');document.body.classList.toggle('fs',on);$('fz').classList.toggle('on',on);
+const d=document.documentElement;try{if(on){const r=d.requestFullscreen||d.webkitRequestFullscreen;if(r){const p=r.call(d);if(p&&p.catch)p.catch(()=>{})}}
+else if(document.fullscreenElement||document.webkitFullscreenElement){const x=document.exitFullscreen||document.webkitExitFullscreen,p=x.call(document);if(p&&p.catch)p.catch(()=>{})}}catch(_){}}
+$('fz').onclick=fsToggle;
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement){document.body.classList.remove('fs');$('fz').classList.remove('on')}});
 draw();ui();requestAnimationFrame(frame);
 </script></body></html>
