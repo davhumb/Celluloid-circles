@@ -32,7 +32,7 @@ label input{flex:1;min-width:0;accent-color:#FFB347}label b{color:var(--fg);min-
 .knob i{position:absolute;left:50%;top:9px;width:3px;height:14px;margin-left:-1.5px;background:var(--fg);border-radius:2px;transform-origin:50% 16px}
 .wf{margin-top:12px;background:#151829cc;border:1px solid var(--line);border-radius:14px;padding:10px}.wh{display:flex;gap:8px;align-items:center;margin-bottom:8px}.wh b{flex:1;font-size:12px;letter-spacing:.2em;text-transform:uppercase}.wh button{padding:7px 12px}#wc{display:block;width:100%;height:96px;touch-action:none;border-radius:8px}
 .kh{display:flex;align-items:center;gap:8px;margin-top:16px}.kh #kt{margin:0;flex:1}.kh button{padding:6px 12px;font-size:13px}
-body.fs h1,body.fs #chips,body.fs .kh,body.fs .kn,body.fs .wf{display:none}
+body.fs h1,body.fs #chips,body.fs .kh,body.fs .kn,body.fs #wf{display:none}
 body.fs main{max-width:none;padding:8px 10px 16px}
 body.fs svg{width:min(100%,calc(100vh - 200px));width:min(100%,calc(100svh - 200px));margin:0 auto}
 @media (orientation:landscape){body.fs main{display:flex;gap:12px;align-items:center;height:100svh;box-sizing:border-box;padding:6px 10px}body.fs svg{width:auto;height:calc(100svh - 12px);margin:0;flex:none}body.fs #ctl{flex:1;min-width:0;max-height:100%;overflow:auto}}
@@ -41,15 +41,16 @@ body.fs svg{width:min(100%,calc(100vh - 200px));width:min(100%,calc(100svh - 200
 .bhr{transform-box:fill-box;transform-origin:center;animation:bhr 8s linear infinite}@keyframes bhr{to{transform:rotate(360deg)}}
 .bi{transform-box:fill-box;transform-origin:center;animation:bi .7s ease-in forwards}@keyframes bi{to{transform:translate(var(--dx),var(--dy)) scale(.1);opacity:0}}
 .sl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.sl button{padding:10px 6px;font-size:13px}
+#sv{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:calc(100% - 20px);max-width:420px;max-height:75vh;overflow:auto;z-index:30;margin:0;background:#151829;box-shadow:0 0 0 100vmax #000a,0 10px 40px #000}
 @media (prefers-reduced-motion:reduce){.d{transition:none}.sw{display:none}.rg{transition:none}.bhr{animation:none}.bi{animation-duration:.01s}}
 </style></head><body><main>
 <h1>Celluloïd <span>Circles</span></h1>
 <svg id="c" viewBox="0 0 380 380" role="img" aria-label="Séquenceur circulaire"></svg>
 <div id="ctl"><div class="row"><button id="pl">Lecture</button><button id="gh">Vélo 100%</button><button id="rl">Roll ×1</button><button id="ch">Chance 100%</button><button id="op">Ouvert</button><button id="un">Annuler</button><button id="cl">Effacer</button><button id="ex">Export</button><div class="seg" id="sg"></div></div>
-<div class="row"><label>Cadence <input id="bp" type="range" min="60" max="140" value="88"><b id="bv">88</b></label><label>Swing <input id="sw" type="range" min="0" max="100" value="0"></label><button id="dl">Dilla</button><button id="bh">Trou noir</button><button id="sb">Sauvegardes</button><button id="fx" class="on">Effets</button><button id="fz">Plein écran</button></div></div>
+<div class="row"><label>Cadence <input id="bp" type="range" min="60" max="140" value="88"><b id="bv">88</b></label><label>Swing <input id="sw" type="range" min="0" max="100" value="0"></label><button id="dl">Dilla</button><button id="bh">Trou noir</button><button id="sb">Modèles</button><button id="fx" class="on">Effets</button><button id="fz">Plein écran</button></div></div>
 <div class="row" id="chips"></div>
 <div class="wf" id="wf" hidden><div class="wh"><b id="wt"></b><button id="wl">Écouter</button><button id="wx">Fermer</button></div><canvas id="wc" width="360" height="96"></canvas></div>
-<div class="wf" id="sv" hidden><div class="wh"><b>Sauvegardes</b><button id="sm">Mode : sauver</button><button id="sx">Fermer</button></div><div class="sl" id="sl"></div><div class="wh" style="margin:8px 0 0"><button id="se">Exporter .json</button><button id="si">Importer</button></div><input id="sf" type="file" accept=".json,application/json" hidden></div>
+<div class="wf" id="sv" hidden><div class="wh"><b>Modèles et sauvegardes</b><button id="sx">Fermer</button></div><div class="wh" style="margin:0 0 8px"><b>Modèles</b><button id="mb" hidden>Retour avant modèle</button></div><div class="sl" id="ml"></div><div class="wh" style="margin:14px 0 8px"><b>Emplacements</b><button id="sm">Mode : sauver</button></div><div class="sl" id="sl"></div><div class="wh" style="margin:8px 0 0"><button id="se">Exporter .json</button><button id="si">Importer</button></div><input id="sf" type="file" accept=".json,application/json" hidden></div>
 <div class="kh"><div id="kt"></div><button id="mu">Mute</button><button id="so">Solo</button></div><div class="kn" id="kn"></div>
 <input id="fi" type="file" accept="audio/*" hidden>
 </main>
@@ -251,5 +252,24 @@ $('si').onclick=()=>$('sf').click();
 $('sf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{applyState(JSON.parse(await f.text()))}catch(_){$('si').textContent='Fichier illisible'}};
 $('bh').onclick=()=>{bh=!bh;if(!bh)H.forEach(a=>a.forEach(h=>{delete h.sw}));$('bh').classList.toggle('on',bh);draw();save()};
 $('ch').onclick=()=>{if(arm){snap();const k=CH.findIndex(v=>Math.abs(v-(arm.h.c==null?1:arm.h.c))<.01);arm.h.c=CH[(k+1)%4]}else chi=(chi+1)%4;draw()};
+const BASE={M:M.p.slice(),T:T.map(x=>x.p.slice())};let prevS=null;
+const hit=(s,v,x)=>Object.assign({f:s/16,v:v==null?1:v},x||{});
+function blank(){return{N:16,fx:true,bh:false,dm:false,dp:null,swing:0,bpm:90,M:BASE.M.slice(),T:BASE.T.map(p=>({p:p.slice(),mute:false,solo:false})),H:[[],[],[],[],[],[]]}}
+const BB=()=>{const s=blank(),t=s.T;s.bpm=90;s.swing=.35;t[0].p[0]=.35;t[0].p[1]=.55;t[3].p[3]=.55;s.M[6]=.12;
+s.H[0]=[hit(0),hit(7),hit(10),hit(13,.2)];s.H[1]=[hit(4),hit(12),hit(15,.2)];s.H[3]=[0,2,4,6,8,10,12,14].map(k=>hit(k,k%4?.7:1,k===14?{o:1}:null));return s};
+const LF=()=>{const s=blank(),t=s.T;s.bpm=82;s.swing=.4;s.dm=true;s.dp={h:0,s:0,r:[.5,.5,.5,.5]};
+t[0].p[0]=.3;t[0].p[1]=.6;t[0].p[11]=.42;t[1].p[5]=.3;t[1].p[8]=.2;t[1].p[11]=.8;t[2].p[3]=.55;t[2].p[5]=.35;t[2].p[8]=.2;t[2].p[11]=.74;t[3].p[3]=.5;t[3].p[8]=.2;t[3].p[9]=.12;t[3].p[11]=.36;
+s.M[6]=.45;s.M[2]=.75;s.M[1]=.85;s.M[3]=.08;
+s.H[0]=[hit(0),hit(6),hit(9,.8),hit(11.5,.2)];s.H[1]=[hit(4),hit(12),hit(14.5,.2)];s.H[2]=[hit(12,.5,{c:.75})];
+s.H[3]=[0,2,4,6,8,10,12,14].map(k=>hit(k,k%4?.65:.85,k===14?{o:1,c:.5}:(k%4===2?{c:.75}:null))).concat([hit(15,.5,{r:2,c:.5})]);return s};
+const RD=()=>{const s=blank(),t=s.T,r=Math.random,pick=a=>a[Math.floor(r()*a.length)],j=(i,k,a)=>{t[i].p[k]=Math.max(0,Math.min(1,t[i].p[k]+(r()-.5)*a))};
+s.bpm=78+Math.floor(r()*24);s.swing=.15+r()*.4;j(0,0,.25);j(0,1,.3);j(1,0,.25);j(1,1,.3);j(3,1,.2);t[1].p[8]=r()<.4?r()*.3:0;t[3].p[8]=r()<.3?r()*.25:0;t[1].p[5]=.1+r()*.3;t[2].p[5]=.1+r()*.35;t[3].p[9]=r()<.5?r()*.2:0;s.M[2]=.55+r()*.3;s.M[6]=r()<.6?.1+r()*.3:0;
+const ks=[3,6,7,9,10,11,13].sort(()=>r()-.5).slice(0,2+Math.floor(r()*2));s.H[0]=[hit(0)].concat(ks.map(k=>hit(k,.85)));if(r()<.5)s.H[0].push(hit(pick([7.5,13.5,14.5,15.5]),.2));
+s.H[1]=[hit(4),hit(12)];if(r()<.6)s.H[1].push(hit(pick([7.5,9.5,10.5,14.5,15]),.2));
+s.H[2]=r()<.5?[hit(12,.5+r()*.3)]:[];
+const d=r()<.4,h=[];for(let k=0;k<16;k+=d?1:2)h.push(hit(k,k%4?.5+r()*.3:1,r()<.15?{c:pick([.5,.75])}:null));
+pick(h.filter(x=>x.f>=6/16)).o=1;if(r()<.6)pick(h.filter(x=>x.f>=8/16)).r=pick([2,3,4]);s.H[3]=h;return s};
+[['Boom bap',BB],['Lo-fi',LF],['Aléatoire',RD]].forEach(m=>{const b=document.createElement('button');b.textContent=m[0];b.onclick=()=>{prevS=state();applyState(m[1]());$('mb').hidden=false;$('sv').hidden=true};$('ml').appendChild(b)});
+$('mb').onclick=()=>{if(prevS){applyState(prevS);prevS=null}$('mb').hidden=true};
 load();draw();ui();requestAnimationFrame(frame);
 </script></body></html>
