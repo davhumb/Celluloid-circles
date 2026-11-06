@@ -325,10 +325,10 @@ function ctl(){const sl=P.slots[P.sel];$('pzm').classList.toggle('on',!!(sl&&sl.
 $('pzv').value=P.vol*100;$('pzu').value=P.pitch*100;$('pzl').value=P.filt*100;$('pzp').textContent=P.on?'Stop pizza':'Lecture pizza';$('pzp').classList.toggle('on',P.on);
 $('pzn').textContent=P.name?P.name+(P.buf?' · '+P.buf.duration.toFixed(1)+' s':'')+(P.memOK?'':' (non mémorisé)'):'Aucun sample';drawW()}
 function play(sl,t,d){if(!sl||sl.m||!P.buf)return;const src=(P.fb&&P.fk)?P.fb:P.buf,b=sl.r?(P.rev||(P.rev=mkRev())):src,len=P.buf.duration,rl=(P.b-P.a)*len,sln=rl/P.n,rate=curRate(),
-off=sl.r?len-(P.a*len+(sl.s+1)*sln):P.a*len+sl.s*sln,dur=Math.min(sln/rate,d),s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(),v=P.vol*1.1,fo=Math.min(.006,dur/2);
-s.buffer=b;s.playbackRate.value=rate;f.type='lowpass';f.Q.value=.7;f.frequency.value=200*Math.pow(100,P.filt);
-g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.002);g.gain.setValueAtTime(v,t+dur-fo);g.gain.linearRampToValueAtTime(0,t+dur);
-s.connect(f);f.connect(g);g.connect(G.mst);s.start(t,off);s.stop(t+dur+.01)}
+off=sl.r?len-(P.a*len+(sl.s+1)*sln):P.a*len+sl.s*sln,dur=Math.min(sln/rate,d),s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(),v=P.vol*1.1,xf=Math.min(.012,dur/3);
+s.buffer=b;s.playbackRate.value=rate;s.loop=true;s.loopStart=sl.r?len-P.b*len:P.a*len;s.loopEnd=sl.r?len-P.a*len:P.b*len;f.type='lowpass';f.Q.value=.7;f.frequency.value=200*Math.pow(100,P.filt);
+g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+xf);g.gain.setValueAtTime(v,t+dur);g.gain.linearRampToValueAtTime(0,t+dur+xf);
+if(P.filt<.97){s.connect(f);f.connect(g)}else s.connect(g);g.connect(G.mst);s.start(t,off);s.stop(t+dur+xf+.01)}
 function sch(){if(!ac||!P.on)return;while(P.tn<ac.currentTime+.25){const k=P.slot%P.n,d=P.bars*N*sd()/P.n;play(P.slots[k],P.tn,d);P.pq.push({t:P.tn,s:k,d:d});P.tn+=d;P.slot=(k+1)%P.n}}
 function startPos(){const d=P.bars*N*sd()/P.n;if(playing){const bs=next-step*sd(),k=Math.max(0,Math.ceil((ac.currentTime+.05-bs)/d-1e-6));return{t:bs+k*d,s:k%P.n}}return{t:ac.currentTime+.08,s:0}}
 function pzStart(){init();if(!P.buf)return;const sp=startPos();P.on=true;P.auto=false;P.tn=sp.t;P.slot=sp.s;P.pq=[];P.cur=null;clearInterval(P.tmr);P.tmr=setInterval(sch,25);ctl()}
