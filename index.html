@@ -277,14 +277,15 @@ load();draw();ui();requestAnimationFrame(frame);
 /* Module Sample pizza : indépendant du reste de l'app (script séparé, il ne modifie aucune fonction existante) */
 (function(){
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg',TAU=Math.PI*2;
-const P={n:8,bars:1,sync:true,follow:true,vol:.8,pitch:.5,filt:1,slots:[],sel:-1,raw:null,name:'',buf:null,rev:null,on:false,auto:false,manual:false,tn:0,slot:0,pq:[],cur:null,tmr:null,dec:0,memOK:true};
+const P={n:8,bars:1,sync:true,follow:true,vol:.8,pitch:.5,filt:1,slots:[],sel:-1,raw:null,name:'',buf:null,rev:null,on:false,auto:false,manual:false,tn:0,slot:0,pq:[],cur:null,tmr:null,dec:0,memOK:true,a:0,b:1};
 let peaks=[],drag=null,wed=[],hd=null,ha=0,dbk=null,lastHl=-1;
 const css=document.createElement('style');
-css.textContent='#pz{position:fixed;inset:0;z-index:40;background:#0a0b14;overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px))}#pz .pzin{max-width:440px;margin:0 auto}#pzs{display:block;width:min(100%,420px);margin:10px auto 0;touch-action:none}body.fs #pzs{width:min(100%,420px)!important;height:auto!important;margin:10px auto 0!important}.pzn{color:var(--mut);font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pzh{color:var(--mut);font-size:12px;margin-top:12px}';
+css.textContent='#pz{position:fixed;inset:0;z-index:40;background:#0a0b14;overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px))}#pz .pzin{max-width:440px;margin:0 auto}#pzs{display:block;width:min(100%,420px);margin:10px auto 0;touch-action:none}body.fs #pzs{width:min(100%,420px)!important;height:auto!important;margin:10px auto 0!important}.pzn{color:var(--mut);font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pzh{color:var(--mut);font-size:12px;margin-top:12px}#pzw{display:block;width:100%;height:80px;touch-action:none;border-radius:10px;margin-top:12px}';
 document.head.appendChild(css);
 const pnl=document.createElement('div');pnl.id='pz';pnl.hidden=true;
 pnl.innerHTML='<div class="pzin"><div class="wh"><b>Sample pizza</b><button id="pzx">Fermer</button></div>'
 +'<div class="row"><button id="pzi">Importer un sample</button><span id="pzn" class="pzn">Aucun sample</span></div>'
++'<canvas id="pzw" width="360" height="80"></canvas><div class="row"><span id="pzd" class="pzn"></span><button id="pze">Écouter la zone</button></div>'
 +'<svg id="pzs" viewBox="0 0 300 300" role="img" aria-label="Pizza de parts de sample"></svg>'
 +'<div class="row"><button id="pzp">Lecture pizza</button><div class="seg" id="pzg"></div><div class="seg" id="pzb"></div></div>'
 +'<div class="row"><button id="pzm">Muet</button><button id="pzr">Reverse</button><button id="pzh">Mélanger</button><button id="pzt">Tourner</button><button id="pzz">Réinit.</button></div>'
@@ -297,16 +298,16 @@ const ob=document.createElement('button');ob.id='pzo';ob.textContent='Pizza';con
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('cc_pizza',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function put(k,v){try{const d=await idb();await new Promise((res,rej)=>{const t=d.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)});P.memOK=true}catch(_){P.memOK=false}}
 async function get(k){try{const d=await idb();return await new Promise((res,rej)=>{const r=d.transaction('k').objectStore('k').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(_){return null}}
-function stSave(){clearTimeout(dbk);dbk=setTimeout(()=>put('st',{n:P.n,bars:P.bars,sync:P.sync,follow:P.follow,vol:P.vol,pitch:P.pitch,filt:P.filt,slots:P.slots,name:P.name}).then(ctl),300)}
+function stSave(){clearTimeout(dbk);dbk=setTimeout(()=>put('st',{a:P.a,b:P.b,n:P.n,bars:P.bars,sync:P.sync,follow:P.follow,vol:P.vol,pitch:P.pitch,filt:P.filt,slots:P.slots,name:P.name}).then(ctl),300)}
 const ident=()=>Array.from({length:P.n},(_,i)=>({s:i,m:0,r:0}));
-function calcPeaks(){const b=P.buf;peaks=[];if(!b)return;const d=b.getChannelData(0),n=P.n,B=24,sl=Math.floor(d.length/n);let mx=.001;
-for(let i=0;i<n;i++){const row=[];for(let j=0;j<B;j++){let m=0;const s=i*sl+Math.floor(j/B*sl),e=i*sl+Math.floor((j+1)/B*sl);for(let k=s;k<e;k+=Math.max(1,(e-s)>>4)){const v=Math.abs(d[k]);if(v>m)m=v}row.push(m);if(m>mx)mx=m}peaks.push(row)}
+function calcPeaks(){const b=P.buf;peaks=[];if(!b)return;const d=b.getChannelData(0),n=P.n,B=24,i0=Math.floor(P.a*d.length),sl=Math.floor((P.b-P.a)*d.length/n);let mx=.001;
+for(let i=0;i<n;i++){const row=[];for(let j=0;j<B;j++){let m=0;const s=i0+i*sl+Math.floor(j/B*sl),e=i0+i*sl+Math.floor((j+1)/B*sl);for(let k=s;k<e;k+=Math.max(1,(e-s)>>4)){const v=Math.abs(d[k]);if(v>m)m=v}row.push(m);if(m>mx)mx=m}peaks.push(row)}
 peaks.forEach(r=>{for(let j=0;j<r.length;j++)r[j]=Math.pow(r[j]/mx,.7)})}
 function mkRev(){const b=P.buf,r=ac.createBuffer(b.numberOfChannels,b.length,b.sampleRate);for(let c=0;c<b.numberOfChannels;c++){const s=b.getChannelData(c),d=r.getChannelData(c);for(let i=0,L=s.length;i<L;i++)d[i]=s[L-1-i]}return r}
 async function decode(){if(!P.raw||!ac)return;try{P.buf=await ac.decodeAudioData(P.raw.slice(0));P.rev=null;calcPeaks()}catch(_){P.buf=null;P.raw=null;$('pzn').textContent='Fichier audio illisible'}draw();ctl()}
 function pt(a,r){return[150+r*Math.sin(a),150-r*Math.cos(a)]}
 function el(n,a,p){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);(p||$('pzs')).appendChild(e);return e}
-function draw(){const sv=$('pzs');sv.innerHTML='';wed=[];lastHl=-1;const n=P.n,B=24;if(P.slots.length!==n)P.slots=ident();
+function draw(){drawW();const sv=$('pzs');sv.innerHTML='';wed=[];lastHl=-1;const n=P.n,B=24;if(P.slots.length!==n)P.slots=ident();
 if(!P.buf){el('circle',{cx:150,cy:150,r:135,fill:'none',stroke:'#2b2e48','stroke-width':2,'stroke-dasharray':'4 6'});const t=el('text',{x:150,y:150,'text-anchor':'middle','dominant-baseline':'central',style:'fill:#8c90ab;font:600 14px sans-serif'});t.textContent=P.raw?'Décodage...':'Importe un sample';return}
 for(let k=0;k<n;k++){const sl=P.slots[k],a0=k/n*TAU,a1=(k+1)/n*TAU,p0=pt(a0,135),p1=pt(a1,135),hue=Math.round(sl.s/n*300),tgt=drag&&drag.moved&&k===drag.to,sel=k===P.sel,col=sl.m?'#555a70':'hsl('+hue+',85%,60%)';
 wed.push(el('path',{d:'M150 150L'+p0[0]+' '+p0[1]+'A135 135 0 0 1 '+p1[0]+' '+p1[1]+'Z',fill:col,'fill-opacity':sl.m?.15:.35,stroke:tgt?'#fff':sel?'#FFB347':'#0a0b14','stroke-width':tgt||sel?4:3,'stroke-linejoin':'round'}));
@@ -319,8 +320,8 @@ function ctl(){const sl=P.slots[P.sel];$('pzm').classList.toggle('on',!!(sl&&sl.
 [...$('pzg').children].forEach(b=>b.classList.toggle('on',+b.dataset.v===P.n));[...$('pzb').children].forEach(b=>b.classList.toggle('on',+b.dataset.v===P.bars));
 $('pzv').value=P.vol*100;$('pzu').value=P.pitch*100;$('pzl').value=P.filt*100;$('pzp').textContent=P.on?'Stop pizza':'Lecture pizza';$('pzp').classList.toggle('on',P.on);
 $('pzn').textContent=P.name?P.name+(P.buf?' · '+P.buf.duration.toFixed(1)+' s':'')+(P.memOK?'':' (non mémorisé)'):'Aucun sample'}
-function play(sl,t,d){if(!sl||sl.m||!P.buf)return;const b=sl.r?(P.rev||(P.rev=mkRev())):P.buf,len=P.buf.duration,sln=len/P.n,rate=(P.sync?len/(P.bars*N*sd()):1)*Math.pow(2,(P.pitch-.5)*2),
-off=sl.r?len-(sl.s+1)*sln:sl.s*sln,dur=Math.min(sln/rate,d),s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(),v=P.vol*1.1,fo=Math.min(.006,dur/2);
+function play(sl,t,d){if(!sl||sl.m||!P.buf)return;const b=sl.r?(P.rev||(P.rev=mkRev())):P.buf,len=P.buf.duration,rl=(P.b-P.a)*len,sln=rl/P.n,rate=(P.sync?rl/(P.bars*N*sd()):1)*Math.pow(2,(P.pitch-.5)*2),
+off=sl.r?len-(P.a*len+(sl.s+1)*sln):P.a*len+sl.s*sln,dur=Math.min(sln/rate,d),s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(),v=P.vol*1.1,fo=Math.min(.006,dur/2);
 s.buffer=b;s.playbackRate.value=rate;f.type='lowpass';f.Q.value=.7;f.frequency.value=200*Math.pow(100,P.filt);
 g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.002);g.gain.setValueAtTime(v,t+dur-fo);g.gain.linearRampToValueAtTime(0,t+dur);
 s.connect(f);f.connect(g);g.connect(G.mst);s.start(t,off);s.stop(t+dur+.01)}
@@ -346,14 +347,29 @@ $('pzy').onclick=()=>{P.sync=!P.sync;stSave();ctl()};
 $('pzf2').onclick=()=>{P.follow=!P.follow;stSave();ctl()};
 $('pzp').onclick=()=>{if(!P.buf)return;if(P.on){pzStop();P.manual=playing}else{pzStart();P.manual=false}ctl()};
 $('pzv').oninput=e=>{P.vol=e.target.value/100;stSave()};$('pzu').oninput=e=>{P.pitch=e.target.value/100;stSave()};$('pzl').oninput=e=>{P.filt=e.target.value/100;stSave()};
+function drawW(){const cv=$('pzw'),c=cv.getContext('2d'),W=cv.width,Hh=cv.height;c.fillStyle='#0a0b14';c.fillRect(0,0,W,Hh);
+if(!P.buf){$('pzd').textContent='';return}
+const d=P.buf.getChannelData(0),st=Math.max(1,Math.floor(d.length/W)),dur=P.buf.duration;
+for(let i=0;i<W;i++){let mn=1,mx=-1;for(let j=i*st;j<(i+1)*st&&j<d.length;j+=Math.max(1,st>>5)){const v=d[j];if(v<mn)mn=v;if(v>mx)mx=v}
+const f=i/W,inn=f>=P.a&&f<=P.b;c.fillStyle=inn?'#8F7BFF':'#3a3d5a';const y0=(1-Math.max(mx,0))*Hh/2,y1=(1-Math.min(mn,0))*Hh/2;c.fillRect(i,y0,1,Math.max(1,y1-y0))}
+c.fillStyle='#FFB347';[P.a,P.b].forEach(v=>{c.fillRect(v*W-1.5,0,3,Hh);c.beginPath();c.arc(v*W,Hh/2,9,0,TAU);c.fill()});
+$('pzd').textContent='Zone '+(P.a*dur).toFixed(2)+' s → '+(P.b*dur).toFixed(2)+' s ('+((P.b-P.a)*dur).toFixed(2)+' s)'}
+let wdrag=null;
+function wpos(e){const b=$('pzw').getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-b.left)/b.width))}
+function wmove(e){const p=wpos(e);if(wdrag==='a')P.a=Math.min(p,P.b-.02);else P.b=Math.max(p,P.a+.02);drawW()}
+$('pzw').addEventListener('pointerdown',e=>{if(!P.buf)return;const p=wpos(e);wdrag=Math.abs(p-P.a)<=Math.abs(p-P.b)?'a':'b';try{$('pzw').setPointerCapture(e.pointerId)}catch(_){}wmove(e)});
+$('pzw').addEventListener('pointermove',e=>{if(wdrag)wmove(e)});
+function wend(){if(!wdrag)return;wdrag=null;calcPeaks();stSave();draw();ctl()}
+$('pzw').addEventListener('pointerup',wend);$('pzw').addEventListener('pointercancel',wend);
+$('pze').onclick=()=>{if(!P.buf)return;init();const len=P.buf.duration,s=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+.03,d=(P.b-P.a)*len,v=P.vol*1.1;s.buffer=P.buf;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.003);g.gain.setValueAtTime(v,t+d-.01);g.gain.linearRampToValueAtTime(0,t+d);s.connect(g);g.connect(G.mst);s.start(t,P.a*len);s.stop(t+d+.01)};
 $('pzi').onclick=()=>$('pzfile').click();
 $('pzfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;init();$('pzn').textContent='Lecture du fichier...';
-try{const raw=await f.arrayBuffer();P.raw=raw;P.name=f.name;P.buf=null;P.rev=null;await decode();if(!P.buf)return;P.slots=ident();P.sel=-1;await put('raw',raw);stSave();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}draw();ctl()}catch(_){$('pzn').textContent='Fichier audio illisible'}};
+try{const raw=await f.arrayBuffer();P.raw=raw;P.name=f.name;P.buf=null;P.rev=null;await decode();if(!P.buf)return;P.slots=ident();P.sel=-1;P.a=0;P.b=1;calcPeaks();await put('raw',raw);stSave();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}draw();ctl()}catch(_){$('pzn').textContent='Fichier audio illisible'}};
 ob.onclick=()=>{init();pnl.hidden=false;if(P.raw&&!P.buf&&!P.dec){P.dec=1;decode().then(()=>{P.dec=0})}ctl();draw()};
 $('pzx').onclick=()=>{pnl.hidden=true};
 setInterval(()=>{if(!playing)P.manual=false;if(P.raw&&!P.buf&&ac&&!P.dec){P.dec=1;decode().then(()=>{P.dec=0})}
 if(!P.follow||!P.buf)return;if(playing&&!P.on&&!P.manual){pzStart();P.auto=true}else if(!playing&&P.on&&P.auto)pzStop()},120);
-(async()=>{const raw=await get('raw');if(!raw)return;const st=await get('st');P.raw=raw;if(st){['n','bars','sync','follow','vol','pitch','filt','slots','name'].forEach(k=>{if(st[k]!==undefined)P[k]=st[k]})}if(P.slots.length!==P.n)P.slots=ident();ctl();draw()})();
+(async()=>{const raw=await get('raw');if(!raw)return;const st=await get('st');P.raw=raw;if(st){['a','b','n','bars','sync','follow','vol','pitch','filt','slots','name'].forEach(k=>{if(st[k]!==undefined)P[k]=st[k]})}if(P.slots.length!==P.n)P.slots=ident();ctl();draw()})();
 ctl();draw();requestAnimationFrame(frame);
 })();
 </script></body></html>
