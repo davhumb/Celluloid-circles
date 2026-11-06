@@ -277,17 +277,17 @@ load();draw();ui();requestAnimationFrame(frame);
 /* Module Sample pizza : indépendant du reste de l'app (script séparé, il ne modifie aucune fonction existante) */
 (function(){
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg',TAU=Math.PI*2;
-const P={n:8,bars:1,sync:true,follow:true,vol:.8,pitch:.5,filt:1,slots:[],sel:-1,raw:null,name:'',buf:null,rev:null,on:false,auto:false,manual:false,tn:0,slot:0,pq:[],cur:null,tmr:null,dec:0,memOK:true,a:0,b:1};
+const P={n:8,bars:1,sync:true,follow:true,vol:.8,pitch:.5,filt:1,slots:[],sel:-1,raw:null,name:'',buf:null,rev:null,on:false,auto:false,manual:false,tn:0,slot:0,pq:[],cur:null,tmr:null,dec:0,memOK:true,a:0,b:1,autoB:true,fb:null,fk:0,pb:0};
 let peaks=[],drag=null,wed=[],hd=null,ha=0,dbk=null,lastHl=-1;
 const css=document.createElement('style');
-css.textContent='#pz{position:fixed;inset:0;z-index:40;background:#0a0b14;overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px))}#pz .pzin{max-width:440px;margin:0 auto}#pzs{display:block;width:min(100%,420px);margin:10px auto 0;touch-action:none}body.fs #pzs{width:min(100%,420px)!important;height:auto!important;margin:10px auto 0!important}.pzn{color:var(--mut);font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pzh{color:var(--mut);font-size:12px;margin-top:12px}#pzw{display:block;width:100%;height:80px;touch-action:none;border-radius:10px;margin-top:12px}';
+css.textContent='#pz{position:fixed;inset:0;z-index:40;background:#0a0b14;overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px))}#pz .pzin{max-width:440px;margin:0 auto}#pzs{display:block;width:min(100%,420px);margin:10px auto 0;touch-action:none}body.fs #pzs{width:min(100%,420px)!important;height:auto!important;margin:10px auto 0!important}.pzn{color:var(--mut);font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pzh{color:var(--mut);font-size:12px;margin-top:12px}#pzw{display:block;width:100%;height:80px;touch-action:none;border-radius:10px;margin-top:12px}#pzd{white-space:normal;overflow:visible}';
 document.head.appendChild(css);
 const pnl=document.createElement('div');pnl.id='pz';pnl.hidden=true;
 pnl.innerHTML='<div class="pzin"><div class="wh"><b>Sample pizza</b><button id="pzx">Fermer</button></div>'
 +'<div class="row"><button id="pzi">Importer un sample</button><span id="pzn" class="pzn">Aucun sample</span></div>'
-+'<canvas id="pzw" width="360" height="80"></canvas><div class="row"><span id="pzd" class="pzn"></span><button id="pze">Écouter la zone</button></div>'
++'<canvas id="pzw" width="360" height="80"></canvas><div class="row"><span id="pzd" class="pzn"></span><button id="pze">Écouter la zone</button></div><div class="pzh" id="pzk"></div>'
 +'<svg id="pzs" viewBox="0 0 300 300" role="img" aria-label="Pizza de parts de sample"></svg>'
-+'<div class="row"><button id="pzp">Lecture pizza</button><div class="seg" id="pzg"></div><div class="seg" id="pzb"></div></div>'
++'<div class="row"><button id="pzp">Lecture pizza</button><div class="seg" id="pzg"></div><span class="pzn" style="flex:none">Mesures</span><div class="seg" id="pzb"></div></div>'
 +'<div class="row"><button id="pzm">Muet</button><button id="pzr">Reverse</button><button id="pzh">Mélanger</button><button id="pzt">Tourner</button><button id="pzz">Réinit.</button></div>'
 +'<div class="row"><button id="pzy">Sync tempo</button><button id="pzf2">Suit Lecture</button></div>'
 +'<div class="row"><label>Vol <input id="pzv" type="range" min="0" max="100"></label><label>Hauteur <input id="pzu" type="range" min="0" max="100"></label><label>Filtre <input id="pzl" type="range" min="0" max="100"></label></div>'
@@ -298,13 +298,17 @@ const ob=document.createElement('button');ob.id='pzo';ob.textContent='Pizza';con
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('cc_pizza',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 async function put(k,v){try{const d=await idb();await new Promise((res,rej)=>{const t=d.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)});P.memOK=true}catch(_){P.memOK=false}}
 async function get(k){try{const d=await idb();return await new Promise((res,rej)=>{const r=d.transaction('k').objectStore('k').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(_){return null}}
-function stSave(){clearTimeout(dbk);dbk=setTimeout(()=>put('st',{a:P.a,b:P.b,n:P.n,bars:P.bars,sync:P.sync,follow:P.follow,vol:P.vol,pitch:P.pitch,filt:P.filt,slots:P.slots,name:P.name}).then(ctl),300)}
+function stSave(){clearTimeout(dbk);dbk=setTimeout(()=>put('st',{autoB:P.autoB,a:P.a,b:P.b,n:P.n,bars:P.bars,sync:P.sync,follow:P.follow,vol:P.vol,pitch:P.pitch,filt:P.filt,slots:P.slots,name:P.name}).then(ctl),300)}
 const ident=()=>Array.from({length:P.n},(_,i)=>({s:i,m:0,r:0}));
 function calcPeaks(){const b=P.buf;peaks=[];if(!b)return;const d=b.getChannelData(0),n=P.n,B=24,i0=Math.floor(P.a*d.length),sl=Math.floor((P.b-P.a)*d.length/n);let mx=.001;
 for(let i=0;i<n;i++){const row=[];for(let j=0;j<B;j++){let m=0;const s=i0+i*sl+Math.floor(j/B*sl),e=i0+i*sl+Math.floor((j+1)/B*sl);for(let k=s;k<e;k+=Math.max(1,(e-s)>>4)){const v=Math.abs(d[k]);if(v>m)m=v}row.push(m);if(m>mx)mx=m}peaks.push(row)}
 peaks.forEach(r=>{for(let j=0;j<r.length;j++)r[j]=Math.pow(r[j]/mx,.7)})}
-function mkRev(){const b=P.buf,r=ac.createBuffer(b.numberOfChannels,b.length,b.sampleRate);for(let c=0;c<b.numberOfChannels;c++){const s=b.getChannelData(c),d=r.getChannelData(c);for(let i=0,L=s.length;i<L;i++)d[i]=s[L-1-i]}return r}
-async function decode(){if(!P.raw||!ac)return;try{P.buf=await ac.decodeAudioData(P.raw.slice(0));P.rev=null;calcPeaks()}catch(_){P.buf=null;P.raw=null;$('pzn').textContent='Fichier audio illisible'}draw();ctl()}
+function mkRev(){const b=(P.fb&&P.fk)?P.fb:P.buf,r=ac.createBuffer(b.numberOfChannels,b.length,b.sampleRate);for(let c=0;c<b.numberOfChannels;c++){const s=b.getChannelData(c),d=r.getChannelData(c);for(let i=0,L=s.length;i<L;i++)d[i]=s[L-1-i]}return r}
+async function decode(){if(!P.raw||!ac)return;try{P.buf=await ac.decodeAudioData(P.raw.slice(0));P.rev=null;P.fb=null;P.fk=0;calcPeaks()}catch(_){P.buf=null;P.raw=null;$('pzn').textContent='Fichier audio illisible'}draw();ctl()}
+function curRate(){const rl=(P.b-P.a)*P.buf.duration;return(P.sync?rl/(P.bars*N*sd()):1)*Math.pow(2,(P.pitch-.5)*2)}
+async function prep(){const b=P.buf;if(!b||!ac||P.pb)return;const rate=curRate(),sr=b.sampleRate,c=Math.min(20000,.45*sr/Math.max(1,rate)),key=c<19500?Math.round(c/200):0;if(P.fk===key)return;P.pb=1;
+try{if(!key){P.fb=null;P.fk=0;P.rev=null}else{const oc=new OfflineAudioContext(b.numberOfChannels,b.length,sr),s=oc.createBufferSource();s.buffer=b;let n=s;[-5.72,-3.01,5.72].forEach(q=>{const f=oc.createBiquadFilter();f.type='lowpass';f.frequency.value=c;f.Q.value=q;n.connect(f);n=f});n.connect(oc.destination);s.start();P.fb=await oc.startRendering();P.fk=key;P.rev=null}}catch(_){}P.pb=0}
+function applyAuto(){if(!P.buf)return;const w=(P.b-P.a)*P.buf.duration/(N*sd());let best=1,bs=1e9;[1,2,4,8].forEach(v=>{const e=Math.abs(Math.log(w/v));if(e<bs){bs=e;best=v}});P.bars=best;const r=w/best;P.sync=!(r<.6||r>1.7)}
 function pt(a,r){return[150+r*Math.sin(a),150-r*Math.cos(a)]}
 function el(n,a,p){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);(p||$('pzs')).appendChild(e);return e}
 function draw(){drawW();const sv=$('pzs');sv.innerHTML='';wed=[];lastHl=-1;const n=P.n,B=24;if(P.slots.length!==n)P.slots=ident();
@@ -317,10 +321,10 @@ el('circle',{cx:150,cy:150,r:22,fill:'#0a0b14',stroke:'#2b2e48','stroke-width':2
 hd=el('g',{transform:'rotate('+ha+' 150 150)','pointer-events':'none'});el('line',{x1:150,y1:150,x2:150,y2:15,stroke:'#FFB347','stroke-width':3,'stroke-linecap':'round'},hd)}
 function hl(k){if(k===lastHl)return;lastHl=k;wed.forEach((w,i)=>w.setAttribute('fill-opacity',i===k?.75:(P.slots[i]&&P.slots[i].m?.15:.35)))}
 function ctl(){const sl=P.slots[P.sel];$('pzm').classList.toggle('on',!!(sl&&sl.m));$('pzr').classList.toggle('on',!!(sl&&sl.r));$('pzy').classList.toggle('on',P.sync);$('pzf2').classList.toggle('on',P.follow);
-[...$('pzg').children].forEach(b=>b.classList.toggle('on',+b.dataset.v===P.n));[...$('pzb').children].forEach(b=>b.classList.toggle('on',+b.dataset.v===P.bars));
+[...$('pzg').children].forEach(b=>b.classList.toggle('on',+b.dataset.v===P.n));[...$('pzb').children].forEach(b=>b.classList.toggle('on',b.dataset.v==='auto'?P.autoB:+b.dataset.v===P.bars));
 $('pzv').value=P.vol*100;$('pzu').value=P.pitch*100;$('pzl').value=P.filt*100;$('pzp').textContent=P.on?'Stop pizza':'Lecture pizza';$('pzp').classList.toggle('on',P.on);
-$('pzn').textContent=P.name?P.name+(P.buf?' · '+P.buf.duration.toFixed(1)+' s':'')+(P.memOK?'':' (non mémorisé)'):'Aucun sample'}
-function play(sl,t,d){if(!sl||sl.m||!P.buf)return;const b=sl.r?(P.rev||(P.rev=mkRev())):P.buf,len=P.buf.duration,rl=(P.b-P.a)*len,sln=rl/P.n,rate=(P.sync?rl/(P.bars*N*sd()):1)*Math.pow(2,(P.pitch-.5)*2),
+$('pzn').textContent=P.name?P.name+(P.buf?' · '+P.buf.duration.toFixed(1)+' s':'')+(P.memOK?'':' (non mémorisé)'):'Aucun sample';drawW()}
+function play(sl,t,d){if(!sl||sl.m||!P.buf)return;const src=(P.fb&&P.fk)?P.fb:P.buf,b=sl.r?(P.rev||(P.rev=mkRev())):src,len=P.buf.duration,rl=(P.b-P.a)*len,sln=rl/P.n,rate=curRate(),
 off=sl.r?len-(P.a*len+(sl.s+1)*sln):P.a*len+sl.s*sln,dur=Math.min(sln/rate,d),s=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter(),v=P.vol*1.1,fo=Math.min(.006,dur/2);
 s.buffer=b;s.playbackRate.value=rate;f.type='lowpass';f.Q.value=.7;f.frequency.value=200*Math.pow(100,P.filt);
 g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.002);g.gain.setValueAtTime(v,t+dur-fo);g.gain.linearRampToValueAtTime(0,t+dur);
@@ -337,7 +341,7 @@ $('pzs').addEventListener('pointermove',e=>{if(!drag)return;if(!drag.moved&&Math
 $('pzs').addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;if(d.moved&&d.to!==d.from){const a=P.slots[d.from];P.slots[d.from]=P.slots[d.to];P.slots[d.to]=a;P.sel=d.to;stSave()}draw();ctl()});
 $('pzs').addEventListener('pointercancel',()=>{drag=null;draw()});
 [4,8].forEach(n=>{const b=document.createElement('button');b.textContent=n+' parts';b.dataset.v=n;b.onclick=()=>{P.n=n;P.slots=ident();P.sel=-1;P.slot=0;calcPeaks();stSave();draw();ctl()};$('pzg').appendChild(b)});
-[1,2].forEach(v=>{const b=document.createElement('button');b.textContent=v+(v>1?' mesures':' mesure');b.dataset.v=v;b.onclick=()=>{P.bars=v;stSave();ctl()};$('pzb').appendChild(b)});
+[1,2,4,8].forEach(v=>{const b=document.createElement('button');b.textContent=v;b.dataset.v=v;b.onclick=()=>{P.bars=v;P.autoB=false;stSave();ctl()};$('pzb').appendChild(b)});{const b=document.createElement('button');b.textContent='Auto';b.dataset.v='auto';b.onclick=()=>{P.autoB=true;applyAuto();stSave();ctl()};$('pzb').appendChild(b)}
 $('pzm').onclick=()=>{const s=P.slots[P.sel];if(s){s.m=s.m?0:1;stSave();draw();ctl()}};
 $('pzr').onclick=()=>{const s=P.slots[P.sel];if(s){s.r=s.r?0:1;stSave();draw();ctl()}};
 $('pzh').onclick=()=>{for(let i=P.slots.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[P.slots[i],P.slots[j]]=[P.slots[j],P.slots[i]]}stSave();draw()};
@@ -353,23 +357,23 @@ const d=P.buf.getChannelData(0),st=Math.max(1,Math.floor(d.length/W)),dur=P.buf.
 for(let i=0;i<W;i++){let mn=1,mx=-1;for(let j=i*st;j<(i+1)*st&&j<d.length;j+=Math.max(1,st>>5)){const v=d[j];if(v<mn)mn=v;if(v>mx)mx=v}
 const f=i/W,inn=f>=P.a&&f<=P.b;c.fillStyle=inn?'#8F7BFF':'#3a3d5a';const y0=(1-Math.max(mx,0))*Hh/2,y1=(1-Math.min(mn,0))*Hh/2;c.fillRect(i,y0,1,Math.max(1,y1-y0))}
 c.fillStyle='#FFB347';[P.a,P.b].forEach(v=>{c.fillRect(v*W-1.5,0,3,Hh);c.beginPath();c.arc(v*W,Hh/2,9,0,TAU);c.fill()});
-$('pzd').textContent='Zone '+(P.a*dur).toFixed(2)+' s → '+(P.b*dur).toFixed(2)+' s ('+((P.b-P.a)*dur).toFixed(2)+' s)'}
+const rt=curRate(),warn=rt<.7||rt>1.4;$('pzd').textContent='Zone '+(P.a*dur).toFixed(2)+' s → '+(P.b*dur).toFixed(2)+' s ('+((P.b-P.a)*dur).toFixed(2)+' s) · ×'+rt.toFixed(2);$('pzd').style.color=warn?'#FFB347':'';$('pzk').textContent=warn?'Vitesse ×'+rt.toFixed(2)+' : le son risque de grésiller ou de sonner terne. Essaie Auto ou un autre nombre de mesures, ou coupe Sync tempo.':''}
 let wdrag=null;
 function wpos(e){const b=$('pzw').getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-b.left)/b.width))}
 function wmove(e){const p=wpos(e);if(wdrag==='a')P.a=Math.min(p,P.b-.02);else P.b=Math.max(p,P.a+.02);drawW()}
 $('pzw').addEventListener('pointerdown',e=>{if(!P.buf)return;const p=wpos(e);wdrag=Math.abs(p-P.a)<=Math.abs(p-P.b)?'a':'b';try{$('pzw').setPointerCapture(e.pointerId)}catch(_){}wmove(e)});
 $('pzw').addEventListener('pointermove',e=>{if(wdrag)wmove(e)});
-function wend(){if(!wdrag)return;wdrag=null;calcPeaks();stSave();draw();ctl()}
+function wend(){if(!wdrag)return;wdrag=null;if(P.autoB)applyAuto();calcPeaks();stSave();draw();ctl()}
 $('pzw').addEventListener('pointerup',wend);$('pzw').addEventListener('pointercancel',wend);
 $('pze').onclick=()=>{if(!P.buf)return;init();const len=P.buf.duration,s=ac.createBufferSource(),g=ac.createGain(),t=ac.currentTime+.03,d=(P.b-P.a)*len,v=P.vol*1.1;s.buffer=P.buf;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.003);g.gain.setValueAtTime(v,t+d-.01);g.gain.linearRampToValueAtTime(0,t+d);s.connect(g);g.connect(G.mst);s.start(t,P.a*len);s.stop(t+d+.01)};
 $('pzi').onclick=()=>$('pzfile').click();
 $('pzfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;init();$('pzn').textContent='Lecture du fichier...';
-try{const raw=await f.arrayBuffer();P.raw=raw;P.name=f.name;P.buf=null;P.rev=null;await decode();if(!P.buf)return;P.slots=ident();P.sel=-1;P.a=0;P.b=1;calcPeaks();await put('raw',raw);stSave();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}draw();ctl()}catch(_){$('pzn').textContent='Fichier audio illisible'}};
+try{const raw=await f.arrayBuffer();P.raw=raw;P.name=f.name;P.buf=null;P.rev=null;await decode();if(!P.buf)return;P.slots=ident();P.sel=-1;P.a=0;P.b=1;P.autoB=true;applyAuto();calcPeaks();await put('raw',raw);stSave();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}draw();ctl()}catch(_){$('pzn').textContent='Fichier audio illisible'}};
 ob.onclick=()=>{init();pnl.hidden=false;if(P.raw&&!P.buf&&!P.dec){P.dec=1;decode().then(()=>{P.dec=0})}ctl();draw()};
 $('pzx').onclick=()=>{pnl.hidden=true};
 setInterval(()=>{if(!playing)P.manual=false;if(P.raw&&!P.buf&&ac&&!P.dec){P.dec=1;decode().then(()=>{P.dec=0})}
-if(!P.follow||!P.buf)return;if(playing&&!P.on&&!P.manual){pzStart();P.auto=true}else if(!playing&&P.on&&P.auto)pzStop()},120);
-(async()=>{const raw=await get('raw');if(!raw)return;const st=await get('st');P.raw=raw;if(st){['a','b','n','bars','sync','follow','vol','pitch','filt','slots','name'].forEach(k=>{if(st[k]!==undefined)P[k]=st[k]})}if(P.slots.length!==P.n)P.slots=ident();ctl();draw()})();
+if(P.buf&&ac)prep();if(!P.follow||!P.buf)return;if(playing&&!P.on&&!P.manual){pzStart();P.auto=true}else if(!playing&&P.on&&P.auto)pzStop()},120);
+(async()=>{const raw=await get('raw');if(!raw)return;const st=await get('st');P.raw=raw;if(st){['autoB','a','b','n','bars','sync','follow','vol','pitch','filt','slots','name'].forEach(k=>{if(st[k]!==undefined)P[k]=st[k]})}if(P.slots.length!==P.n)P.slots=ident();ctl();draw()})();
 ctl();draw();requestAnimationFrame(frame);
 })();
 </script></body></html>
